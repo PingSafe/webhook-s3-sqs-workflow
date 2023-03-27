@@ -41,7 +41,6 @@ aws_account_id = user['Account']
 print(f"Using profile {args.aws_cli_profile}, with role arn {user['Arn']} to execute script")
 
 
-
 def get_or_create_queue_url(session, queue_name, bucket_name, account_id, region):
     try:
         sqs = session.client('sqs', config=aws_config)
@@ -54,7 +53,7 @@ def get_or_create_queue_url(session, queue_name, bucket_name, account_id, region
             "Id": str(uuid.uuid4())[:23],
             "Statement": [
                 {
-                    "Sid": "example-statement-ID",
+                    "Sid": f"qradar-pingSafeAWSSQSPolicy{str(uuid.uuid4())[:12]}",
                     "Effect": "Allow",
                     "Principal": {
                         "Service": "s3.amazonaws.com"
@@ -129,7 +128,7 @@ def get_or_create_bucket(session, bucket_name, aws_region):
             NotificationConfiguration={
                 'QueueConfigurations': [
                     {
-                        'Id': str(uuid.uuid4()),
+                        'Id': f"qrada-pingSafeAWSS3Notification{str(uuid.uuid4())[:12]}",
                         'QueueArn': queue_arn,
                         'Events': list([
                             's3:ObjectCreated:Put',
@@ -141,7 +140,28 @@ def get_or_create_bucket(session, bucket_name, aws_region):
                 ],
             },
         )
-        # print(response)
+
+        print("Adding LifeCycle Rule configuration...")
+        response = s3_client.put_bucket_lifecycle_configuration(
+            Bucket=bucket_name,
+            ChecksumAlgorithm='SHA256',
+            LifecycleConfiguration={
+                "Rules": [
+                    {
+                        "Expiration": {"Days": 1,},
+                        "ID": f"qradar-pingSafeAWSS3Rule{str(uuid.uuid4())[:12]}",
+                        "Filter": {
+                            "Prefix": ""
+                        },
+                        "Status": "Enabled",
+                        "Transitions": [],
+                        "NoncurrentVersionTransitions": [],
+                        "NoncurrentVersionExpiration": {"NoncurrentDays": 1},
+                    },
+                ]
+            },
+        )
+        # # print(response)
         return bucket
     except Exception as e:
         print(f"Failed to get or create bucket with name {bucket_name}, error:", e)
@@ -300,7 +320,6 @@ def get_or_create_lamda_function(session, function_name, role_arn, path_to_code_
         Principal='*',
         FunctionUrlAuthType='NONE'
     )
-
     print(f'Successfully created lambda function, ')
     return lambda_function_url['FunctionUrl'], pingsafe_api_key
 
@@ -310,3 +329,4 @@ pingsafe_api_key = str(uuid.uuid4())
 webhook_url, api_key = get_or_create_lamda_function(session, args.lambda_function_name, role_arn, 'src/deployment-package.zip', args.bucket_name, pingsafe_api_key)
 
 print(f"Please configure webhook on PingSafe dashboard [https://app.pingsafe.com/settings/integrations/webhook], \nenter url: {webhook_url}, api_key: {api_key}")
+print(f"To configure QRadar log source use {queue_url} sqs queue URL.")
