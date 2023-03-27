@@ -4,7 +4,9 @@
 Creates AWS resources and deploys src/deployment-package.zip on lambda
 AWS resourcess
 - SQS Queue
+- S3 Bucket
 - IAM Role and Policies required for lambda
+- Lifecycle rules for S3 (1-day expiration of objects)
 - Lambda function 
 
 Requirements
