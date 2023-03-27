@@ -20,10 +20,10 @@ python3 init.py --aws-cli-profile <aws cli profile> --aws-region <aws region> --
 ```
 
 In case `src/lambda_function.py` is changed, please add it to `deployment-package.zip` using
+> Copy the SQS url, Lambda url and PingSafe key provided in the output
 ```shell
 zip src/deployment-package.zip src/lambda_function.py
 ```
-> Copy the SQS url, Lambda url and PingSafe key provided in the output
 
 ## Qradar setup steps:
     
