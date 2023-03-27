@@ -23,7 +23,7 @@ In case `src/lambda_function.py` is changed, please add it to `deployment-packag
 ```shell
 zip src/deployment-package.zip src/lambda_function.py
 ```
-
+> Copy the SQS url, Lambda url and PingSafe key provided in the output
 
 ## Qradar setup steps:
     
