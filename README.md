@@ -27,22 +27,24 @@ zip src/deployment-package.zip src/lambda_function.py
 
 ## Qradar setup steps:
     
-1.  Open **Admin dashboard**->**Extension Management**. From there add the "PingSafe" extension (check install immediately).
-2.  Open **Log Source Management App**. Create a new single Log Source
-    1.  Select “PingSafe” as Log source type. Next.
-    2.  Select “Amazon AWS S3 Rest API“ as Protocol. Next.
-    3.  Configure Log Source parameters:
+1. Download the PingSafe DSM for QRadar from [here.](https://drive.google.com/file/d/1pXmw4nBQhtEd9gk-XWl2IN8EXLmX-Wq8/view?usp=share_link) 
+2. Open **Admin dashboard**->**Extension Management**. From there add the "PingSafe" extension (check install immediately).
+3. Open **Log Source Management App**. Create a new single Log Source
+    1. Select “PingSafe” as Log source type. Click on next.
+    2. Select “Amazon AWS S3 Rest API“ as Protocol. Click on next.
+    3. Configure Log Source parameters:
         *  Name = _Any suitable name for your log source_
-        *  Extension = _select PingSafe extension_
+        *  Extension = _select PingSafeCustom_ext extension_
         *  Coalescing Events = _set this to off_
         >  Leave rest of the details on this page as it is.
-    4.  Configure Protocol parameters:
-
-          1.  Log source identifier = _enter name of your SQS_
+    4. Configure Protocol parameters:
+          1.  Log source identifier = _enter name of your SQS queue_
           2.  Authentication Method = _select “Access key ID / Secret Key”_
-          3.  Enter AWS Access key and Secret
+          3.  Enter AWS Access key and Secret for user which has permission to read and delete action to SQS queue and read permission from S3.
           4.  Collection method = _select “SQS Event notification”_
           5.  SQS Queue URL = _enter the SQS url you copied earlier_
           6.  Region name = _Region of your SQS_
           7.  Event Format = _select LINEBYLINE_
           >  Leave the rest as it is.
+4. Go to Admin dashboard and _Deploy Changes_ for Log Source to be activated.
+
