@@ -1,6 +1,9 @@
-import json, hashlib, uuid, os
+import os
+import uuid
+import json
 import boto3
 import base64
+import hashlib
 import traceback
 
 
@@ -12,10 +15,13 @@ def sha256_hash(string):
     # Return the hexadecimal representation of the hash
     return sha256.hexdigest()
 
+
+API_KEY = os.environ.get('PINGSAFE_API_KEY')
+BUCKET_NAME = os.environ.get('BUCKET_NAME')
+
+
 def lambda_handler(event, context):
     s3 = boto3.resource('s3')
-    api_key = os.environ.get('PINGSAFE_API_KEY')
-    bucket_name = os.environ.get('BUCKET_NAME')
 
     try:
         if event['requestContext']['http']['method'] != "POST":
@@ -33,7 +39,7 @@ def lambda_handler(event, context):
 
         # verify checksum
         if 'x-pingsafe-checksum' not in headers:
-            print("X-PingSafe-Checksum header cannot be found, aborting request")
+            print("checksum header cannot be found, aborting request")
             return {
                 "statusCode": 401,
                 "headers": {
@@ -46,7 +52,7 @@ def lambda_handler(event, context):
 
         checksum = headers['x-pingsafe-checksum']
         # For more details refer to https://docs.pingsafe.com/getting-pingsafe-events-on-custom-webhook
-        if sha256_hash(f"{body['event']}.{api_key}") != checksum:
+        if sha256_hash(f"{body['event']}.{API_KEY}") != checksum:
             return {
                 "statusCode": 403,
                 "headers": {
@@ -58,7 +64,7 @@ def lambda_handler(event, context):
             }
 
         event_payload = base64.b64decode(body['event']).decode('utf-8')
-        obj = s3.Object(bucket_name=bucket_name, key=f"{str(uuid.uuid4())}.json")
+        obj = s3.Object(bucket_name=BUCKET_NAME, key=f"{str(uuid.uuid4())}.json")
         response = obj.put(Body=event_payload)
         return {
             "statusCode": 200,
@@ -81,17 +87,3 @@ def lambda_handler(event, context):
                 "error": "failed to accept event, please check logs for more details"
             })
         }
-#
-# lambda_handler(event={
-# 	"requestContext": {
-# 		"http": {
-# 			"method": "POST"
-# 		}
-# 	},
-# 	"body": str({
-# 			"event": "" // add base64 endcoded event
-# 	}),
-# 	"headers": {
-# 		"x-pingsafe-checksum": "9a0e405373e6666fa7fb4ae60ff5f46934c91c2a6deca042deef567cd5452983"
-# 	}
-# }, context="")

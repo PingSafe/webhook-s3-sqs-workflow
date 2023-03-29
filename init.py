@@ -12,9 +12,10 @@ tags = {
 
 parser = argparse.ArgumentParser(
     prog='PingSafe Webhook Lambda App',
-    description='Receive webhooks from PingSafe on AWS Lambda')
+    description='Receive webhooks from PingSafe on AWS Lambda and stores on S3 with SQS event publish')
 
-parser.add_argument('--aws_cli_profile', help='aws profile configured in your cli, if not provided picks default config',
+parser.add_argument('--aws_cli_profile',
+                    help='aws profile configured in your cli, if not provided picks default config',
                     default='default')
 parser.add_argument('--aws_region', help='aws region name for lambda and sqs to be created',
                     required=True)
@@ -62,7 +63,7 @@ def get_or_create_queue_url(session, queue_name, bucket_name, account_id, region
                     "Resource": f"arn:aws:sqs:{region}:{account_id}:{queue_name}",
                     "Condition": {
                         "ArnLike": {
-                        "aws:SourceArn": f"arn:aws:s3:::{bucket_name}"
+                            "aws:SourceArn": f"arn:aws:s3:::{bucket_name}"
                         }
                     }
                 }
@@ -76,7 +77,9 @@ def get_or_create_queue_url(session, queue_name, bucket_name, account_id, region
         exit(-1)
 
 
-queue_url, queue_arn = get_or_create_queue_url(session, args.queue_name, args.bucket_name, aws_account_id, args.aws_region)
+queue_url, queue_arn = get_or_create_queue_url(session, args.queue_name, args.bucket_name, aws_account_id,
+                                               args.aws_region)
+
 
 def generate_s3_policy_document(region, account_id, lambda_name, bucket_name):
     policy = {
@@ -98,10 +101,11 @@ def generate_s3_policy_document(region, account_id, lambda_name, bucket_name):
     }
     return json.dumps(policy)
 
+
 s3_policy = generate_s3_policy_document(args.aws_region, aws_account_id, args.lambda_function_name, args.bucket_name)
 
+
 def get_or_create_bucket(session, bucket_name, aws_region):
-    
     try:
         s3_client = session.client('s3', config=aws_config)
         s3_resource = session.resource('s3', config=aws_config)
@@ -109,13 +113,13 @@ def get_or_create_bucket(session, bucket_name, aws_region):
             bucket = s3_resource.meta.client.head_bucket(Bucket=bucket_name)
         except Exception:
             bucket = s3_resource.create_bucket(
-                ACL = 'private',
+                ACL='private',
                 Bucket=bucket_name,
                 CreateBucketConfiguration={
                     'LocationConstraint': aws_region
                 },
             )
-        
+
         print("Adding policy to S3...")
         response = s3_client.put_bucket_policy(
             Bucket=bucket_name,
@@ -167,7 +171,9 @@ def get_or_create_bucket(session, bucket_name, aws_region):
         print(f"Failed to get or create bucket with name {bucket_name}, error:", e)
         exit(-1)
 
+
 bucket = get_or_create_bucket(session, args.bucket_name, args.aws_region)
+
 
 # get or create role
 def generate_policy_string(region, account_id, lambda_name, bucket_name):
@@ -195,7 +201,7 @@ def generate_policy_string(region, account_id, lambda_name, bucket_name):
                 ],
                 "Effect": "Allow",
                 "Resource": f"arn:aws:s3:::{bucket_name}"
-                
+
             }
         ]
     }
@@ -277,13 +283,15 @@ def get_or_create_lamda_function(session, function_name, role_arn, path_to_code_
     try:
         # Get the function
         exisiting_lambda_details = lambda_client.get_function(FunctionName=function_name)
-        delete_function = input(f'Function {function_name} already exists. Do you want to delete and create new function (Y/N)?')
+        delete_function = input(
+            f'Function {function_name} already exists. Do you want to delete and create new function (Y/N)?')
         if delete_function == "Y":
             lambda_client.delete_function(FunctionName=function_name)
             lambda_client.delete_function_url_config(FunctionName=function_name)
         else:
             url_config = lambda_client.get_function_url_config(FunctionName=function_name)
-            return url_config['FunctionUrl'], exisiting_lambda_details['Configuration']['Environment']['Variables']['PINGSAFE_API_KEY']
+            return url_config['FunctionUrl'], exisiting_lambda_details['Configuration']['Environment']['Variables'][
+                'PINGSAFE_API_KEY']
     except lambda_client.exceptions.ResourceNotFoundException:
         print("lambda not found, creating...")
 
@@ -326,7 +334,9 @@ def get_or_create_lamda_function(session, function_name, role_arn, path_to_code_
 
 pingsafe_api_key = str(uuid.uuid4())
 
-webhook_url, api_key = get_or_create_lamda_function(session, args.lambda_function_name, role_arn, 'src/deployment-package.zip', args.bucket_name, pingsafe_api_key)
+webhook_url, api_key = get_or_create_lamda_function(session, args.lambda_function_name, role_arn,
+                                                    'src/deployment-package.zip', args.bucket_name, pingsafe_api_key)
 
-print(f"Please configure webhook on PingSafe dashboard [https://app.pingsafe.com/settings/integrations/webhook], \nenter url: {webhook_url}, api_key: {api_key}")
-print(f"To configure QRadar log source use {queue_url} sqs queue URL.")
+print(
+    f"Please configure webhook on PingSafe dashboard [https://app.pingsafe.com/settings/integrations/webhook], "
+    f"\nenter url: {webhook_url}, api_key: {api_key}")
