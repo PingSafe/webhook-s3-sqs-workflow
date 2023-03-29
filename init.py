@@ -197,11 +197,10 @@ def generate_policy_string(region, account_id, lambda_name, bucket_name):
             },
             {
                 "Action": [
-                    "s3:*"
+                    "s3:PutObject"
                 ],
                 "Effect": "Allow",
-                "Resource": f"arn:aws:s3:::{bucket_name}"
-
+                "Resource": f"arn:aws:s3:::{bucket_name}/*"
             }
         ]
     }
