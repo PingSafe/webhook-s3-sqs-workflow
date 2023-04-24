@@ -1,0 +1,78 @@
+# Name of this GitHub Actions workflow.
+name: Semgrep
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+  # Scan changed files in PRs (diff-aware scanning):
+  pull_request: {}
+  # Scan mainline branches and report all findings:
+  push:
+    branches: ["master", "main"]
+  # Schedule the CI job (this method uses cron syntax):
+  schedule:
+    - cron: '0 0 * * 1'
+
+jobs:
+  semgrep:
+    # User-definable name of this GitHub Actions job:
+    name: Scan
+    # If you are self-hosting, change the following `runs-on` value:
+    runs-on: security
+    env:
+      # project language
+      configLanguage:
+
+    # Skip any PR created by dependabot to avoid permission issues:
+    if: (github.actor != 'dependabot[bot]')
+
+    steps:
+      # Fetch project source with GitHub Actions Checkout.
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Run semgrep
+        run: $HOME/.local/bin/semgrep ci --config auto --json --metrics off > semgrep_findings.json
+        # Semgrep ci by defaults returns exit(1) if any security issues is found. But we only want to block the PR for
+        # high and above severities alerts.
+        continue-on-error: true
+
+      - name: Upload main/master branch semgrep results
+        # Publish result to defectDojo and auto close resolved findings if semgrep ran on master or main branch
+        if: github.ref_name == 'master' || github.ref_name == 'main'
+        run: |
+          # Download watchdog
+          curl -o watchdog 'http://10.10.1.22:8443/watchdog'
+          chmod +x ./watchdog
+          curl --insecure --location --request POST 'https://10.10.1.22/api/v2/reimport-scan/' \
+            --header 'Authorization: Token ${{secrets.DEFECTDOJO_TOKEN}}' \
+            --form 'active="true"' \
+            --form 'verified="false"' \
+            --form 'scan_type="Semgrep JSON Report"' \
+            --form 'file=@"./semgrep_findings.json"' \
+            --form "product_name=${{ github.event.repository.name }}" \
+            --form 'engagement_name="Semgrep-${{ github.event.repository.name }}"' \
+            --form 'auto_create_context="true"' \
+            --form 'product_type_name="project"' \
+            --form 'close_old_findings="true"'
+          ./watchdog -product-name ${{ github.event.repository.name }} -defectdojo-token ${{secrets.DEFECTDOJO_TOKEN}} -semgrep-result-file-path ./semgrep_findings.json
+
+      - name: Upload non main/master branch semgrep results
+        # Publish result to defectDojo and don't auto close old findings
+        if: github.ref_name != 'master' && github.ref_name != 'main'
+        run: |
+          # Download watchdog
+          curl -o watchdog 'http://10.10.1.22:8443/watchdog'
+          chmod +x ./watchdog
+          curl --insecure --location --request POST 'https://10.10.1.22/api/v2/reimport-scan/' \
+            --header 'Authorization: Token ${{secrets.DEFECTDOJO_TOKEN}}' \
+            --form 'active="true"' \
+            --form 'verified="false"' \
+            --form 'scan_type="Semgrep JSON Report"' \
+            --form 'file=@"./semgrep_findings.json"' \
+            --form "product_name=${{ github.event.repository.name }}" \
+            --form 'engagement_name="Semgrep-${{ github.event.repository.name }}"' \
+            --form 'auto_create_context="true"' \
+            --form 'product_type_name="project"' \
+            --form 'close_old_findings="false"'
+          ./watchdog -product-name ${{ github.event.repository.name }} -defectdojo-token ${{secrets.DEFECTDOJO_TOKEN}} -semgrep-result-file-path ./semgrep_findings.json
