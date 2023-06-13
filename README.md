@@ -14,6 +14,15 @@ AWS resourcess
 - python3
 
 ## Steps to start
+1. Clone this repository
+```shell
+git clone https://github.com/PingSafe/webhook-s3-sqs-workflow.git
+```
+2. Move to `webhook-s3-sqs-workflow` directory
+```shell
+cd webhook-s3-sqs-workflow
+```
+3. Execute below commands to install dependency and create AWS resources
 ```shell
 pip3 install -r requirements.txt
 python3 init.py --aws-cli-profile <aws cli profile> --aws-region <aws region> --queue-name <sqs queue name> --lambda-function-name <lambda name>
