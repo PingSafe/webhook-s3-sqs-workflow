@@ -28,6 +28,8 @@ pip3 install -r requirements.txt
 python3 init.py --aws-cli-profile <aws cli profile> --aws-region <aws region> --queue-name <sqs queue name> --lambda-function-name <lambda name>
 ```
 
+> NOTE: If running on a aws cloudshell or non profile based authenticatoion credentials, pass `<aws cli profile>` as `none`
+
 > Copy the SQS url, Lambda url and PingSafe key provided in the output
 
 In case `src/lambda_function.py` is changed, please add it to `deployment-package.zip` using
