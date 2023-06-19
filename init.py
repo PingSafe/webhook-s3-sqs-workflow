@@ -33,7 +33,10 @@ aws_config = botocore.config.Config(
     signature_version='v4',
 )
 
-session = boto3.Session(profile_name=args.aws_cli_profile)
+if args.aws_cli_profile == "none":
+    session = boto3.Session()
+else:
+    session = boto3.Session(profile_name=args.aws_cli_profile)
 
 sts = session.client('sts', config=aws_config)
 user = sts.get_caller_identity()
