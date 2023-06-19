@@ -25,7 +25,7 @@ cd webhook-s3-sqs-workflow
 3. Execute below commands to install dependency and create AWS resources
 ```shell
 pip3 install -r requirements.txt
-python3 init.py --aws-cli-profile <aws cli profile> --aws-region <aws region> --queue-name <sqs queue name> --lambda-function-name <lambda name>
+python3 init.py --aws_cli_profile <aws cli profile> --aws_region <aws region> --queue_name <sqs queue name> --lambda_function_name <lambda name> --bucket_name <s3 bucket name>
 ```
 
 > NOTE: If running on a aws cloudshell or non profile based authentication credentials, pass `<aws cli profile>` as `none`
